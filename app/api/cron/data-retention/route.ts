@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResend } from '@/lib/resend'
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'ShiftAssist <noreply@shiftsync.hu>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://shiftsync.hu'
 
@@ -63,7 +61,7 @@ export async function GET(request: NextRequest) {
       }
       if (!owner.email) continue
 
-      await resend.emails.send({
+      await getResend().emails.send({
         from: FROM_EMAIL,
         to: owner.email,
         subject: `ShiftAssist – A próbaidőszakod ${daysLeft} nap múlva lejár`,

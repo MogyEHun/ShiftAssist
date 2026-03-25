@@ -1,6 +1,7 @@
 'use server'
 
 import { Resend } from 'resend'
+import { getResend } from '@/lib/resend'
 import { render } from '@react-email/components'
 import { format, parseISO } from 'date-fns'
 import { hu } from 'date-fns/locale'
@@ -11,7 +12,6 @@ import { LeaveRequest } from '@/emails/LeaveRequest'
 import { LeaveResult } from '@/emails/LeaveResult'
 import { createAdminClient } from '@/lib/supabase/admin'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'ShiftAssist <noreply@shiftsync.hu>'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
@@ -19,12 +19,12 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 // Email retry helper – exponential backoff + audit_log logolás
 // ------------------------------------------------------------
 async function sendEmailWithRetry(
-  params: Parameters<typeof resend.emails.send>[0],
+  params: Parameters<Resend['emails']['send']>[0],
   maxRetries = 3
 ): Promise<void> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      await resend.emails.send(params)
+      await getResend().emails.send(params)
       return
     } catch (err) {
       if (attempt === maxRetries - 1) {

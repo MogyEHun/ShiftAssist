@@ -2,11 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Resend } from 'resend'
+import { getResend } from '@/lib/resend'
 import { logAudit } from './audit'
 import { getUserById, anonymizeUserData } from '@/lib/data/users'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'ShiftAssist <noreply@shiftsync.hu>'
 
@@ -59,7 +57,7 @@ export async function requestAccountDeletion(confirmedName: string) {
   await logAudit(profile.company_id, user.id, 'account.deletion_requested', 'user', user.id, null, { scheduled_for: deletionDate })
 
   // Email visszaigazolás
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM_EMAIL,
     to: user.email!,
     subject: 'ShiftAssist – Fiók törlési kérelem visszaigazolása',

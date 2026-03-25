@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { Resend } from 'resend'
+import { getResend } from '@/lib/resend'
 import crypto from 'crypto'
 import { logAudit } from './audit'
 import { filterUsersForRole } from '@/lib/response-filter'
@@ -11,7 +11,6 @@ import { sanitizeName, sanitizeNote } from '@/lib/sanitize'
 import { canAddEmployee } from '@/lib/billing'
 import { getCompanyUsers, getUserById, updateUserEncrypted } from '@/lib/data/users'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
 
 // ============================================================
 // Dolgozók lekérése
@@ -117,7 +116,7 @@ export async function inviteStaff(formData: FormData) {
   const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL}/invite/${token}`
   const roleLabel = role === 'manager' ? 'Vezető' : 'Dolgozó'
 
-  const { error: emailError } = await resend.emails.send({
+  const { error: emailError } = await getResend().emails.send({
     from: process.env.RESEND_FROM_EMAIL!,
     to: email,
     subject: `${inviterName} meghívott a ${companyName} csapatába – ShiftAssist`,
