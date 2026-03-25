@@ -174,7 +174,7 @@ function ScheduleHeader({
           <p className="text-sm text-gray-500 mt-0.5">{label}</p>
         </div>
         <Suspense fallback={null}>
-          <ViewToggle currentView={view} isManager={isManager} group="schedule" />
+          <ViewToggle currentView={view as any} isManager={isManager} group="schedule" />
         </Suspense>
       </div>
       <div className="flex items-center gap-3">
@@ -190,7 +190,7 @@ function ScheduleHeader({
         )}
         {isManager && (
           <Suspense fallback={null}>
-            <ViewToggle currentView={view} isManager={isManager} group="management" />
+            <ViewToggle currentView={view as any} isManager={isManager} group="management" />
           </Suspense>
         )}
       </div>
