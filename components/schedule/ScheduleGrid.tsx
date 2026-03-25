@@ -686,6 +686,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                           title: sg.required_position ?? 'Javaslat',
                           type: 'fixed',
                           location: null,
+                          station_id: null,
                           break_minutes: 0,
                           created_by: '',
                           created_at: '',
@@ -733,7 +734,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
           shift={modal.shift}
           prefilledUserId={modal.prefilledUserId}
           prefilledDate={modal.prefilledDate}
-          employees={scheduleData.employees as unknown as import('@/types').User[]}
+          employees={scheduleData.employees}
           stations={scheduleData.stations}
           availabilityDates={scheduleData.availabilityDates}
           plannerMode={plannerMode}

@@ -226,7 +226,7 @@ export interface ShiftWithAssignee extends Shift {
 // Heti beosztás adatok (szerver → kliens)
 export interface WeeklyScheduleData {
   shifts: ShiftWithAssignee[]
-  employees: (Omit<User, 'role'> & { role: string })[]
+  employees: User[]
   weekStart: string   // ISO dátum (hétfő)
   weekEnd: string     // ISO dátum (vasárnap)
   positions: Position[]

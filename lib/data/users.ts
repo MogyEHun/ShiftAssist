@@ -12,6 +12,7 @@
 
 import { createAdminClient } from '@/lib/supabase/admin'
 import { encrypt, decrypt, hashEmail, generatePseudonym } from '@/lib/encryption'
+import type { UserRole } from '@/types'
 
 export interface DecryptedUser {
   id: string
@@ -19,7 +20,7 @@ export interface DecryptedUser {
   full_name: string
   email: string
   phone?: string
-  role: string
+  role: UserRole
   position: string | null
   hourly_rate: number | null
   daily_rate: number | null
@@ -59,7 +60,7 @@ function decryptRow(row: Record<string, unknown>): DecryptedUser {
     full_name: fullName,
     email,
     phone: phone || undefined,
-    role: row.role as string,
+    role: row.role as UserRole,
     position: (row.position as string | null) ?? null,
     hourly_rate: (row.hourly_rate as number | null) ?? null,
     daily_rate: (row.daily_rate as number | null) ?? null,

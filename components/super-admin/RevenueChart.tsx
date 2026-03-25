@@ -27,7 +27,7 @@ export function RevenueChart({ data }: Props) {
           tickFormatter={v => v >= 1000 ? `${v / 1000}k` : String(v)}
         />
         <Tooltip
-          formatter={(v: number) => [`${v.toLocaleString('hu-HU')} Ft`, 'Bevétel']}
+          formatter={(v) => [typeof v === 'number' ? `${v.toLocaleString('hu-HU')} Ft` : '', 'Bevétel']}
           contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13 }}
         />
         <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]} />

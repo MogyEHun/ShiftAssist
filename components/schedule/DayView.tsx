@@ -236,7 +236,6 @@ export function DayView({ scheduleData, currentUserId, userRole, dateISO }: Prop
           prefilledUserId={modal.prefilledUserId}
           prefilledDate={modal.prefilledDate}
           employees={scheduleData.employees}
-          positions={scheduleData.positions}
           onSave={() => { setModal({ open: false, mode: 'create' }); router.refresh() }}
           onDelete={() => { setModal({ open: false, mode: 'create' }); router.refresh() }}
           onClose={() => setModal({ open: false, mode: 'create' })}
