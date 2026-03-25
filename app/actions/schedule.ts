@@ -181,7 +181,7 @@ export async function getWeeklySchedule(weekStartISO: string, siteId?: string): 
 
   return {
     shifts: visibleShifts,
-    employees: scopedEmployees,
+    employees: scopedEmployees as any,
     weekStart: weekStartISO,
     weekEnd: formatISO(weekEnd, { representation: 'date' }),
     positions: positions || [],
@@ -851,7 +851,7 @@ export async function publishShifts(
         .from('shifts')
         .select('id, user_id, title, start_time')
         .in('id', updatedShifts.map(s => s.id))
-      const uniqueUserIds = [...new Set((updatedShifts).map(s => s.user_id).filter(Boolean))]
+      const uniqueUserIds = Array.from(new Set((updatedShifts).map(s => s.user_id).filter(Boolean)))
       await Promise.all(uniqueUserIds.map(async (userId) => {
         const userShifts = (shiftDetails ?? []).filter(s => s.user_id === userId)
         const firstShift = userShifts[0]
