@@ -88,7 +88,7 @@ export async function getReliabilityStats(companyId: string, months = 3): Promis
   }
 
   const result: EmployeeReliability[] = []
-  for (const stat of map.values()) {
+  for (const stat of Array.from(map.values())) {
     stat.score = stat.totalShifts > 0 ? Math.round((stat.onTime / stat.totalShifts) * 100) : 100
     result.push(stat)
   }
