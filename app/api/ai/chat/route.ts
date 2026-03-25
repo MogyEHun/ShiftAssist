@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { openai, AI_MODEL } from '@/lib/openai'
+import { getOpenAI, AI_MODEL } from '@/lib/openai'
 
 const RATE_LIMIT = 20 // kérés/óra
 
@@ -76,7 +76,7 @@ ADATVÉDELMI SZABÁLYOK (kötelező betartani):
 Válaszolj magyarul, tömören és pontosan. Ha nem tudod a választ, mondd meg őszintén.${knowledgeText}`
 
   // 9. Streaming OpenAI hívás
-  const stream = await openai.chat.completions.create({
+  const stream = await getOpenAI().chat.completions.create({
     model: AI_MODEL,
     messages: [
       { role: 'system', content: systemPrompt },

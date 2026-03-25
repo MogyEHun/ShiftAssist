@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { openai, AI_MODEL } from '@/lib/openai'
+import { getOpenAI, AI_MODEL } from '@/lib/openai'
 import { AiShiftSuggestion } from '@/types'
 import { addDays, format } from 'date-fns'
 import { getCompanyUsers } from '@/lib/data/users'
@@ -189,7 +189,7 @@ Visszaadj egy JSON tömböt. Minden elem:
 Csak a JSON tömböt add vissza, semmi más szöveget.`
 
   try {
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: AI_MODEL,
       messages: [{ role: 'user', content: prompt }],
       response_format: { type: 'json_object' },
