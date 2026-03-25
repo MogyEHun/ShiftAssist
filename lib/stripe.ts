@@ -1,10 +1,16 @@
 import Stripe from 'stripe'
 
-// Stripe szerver oldali kliens
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2026-02-25.clover',
-  typescript: true,
-})
+// Lazy inicializálás – csak runtime-ban jön létre, build-time nem dob hibát
+let _stripe: Stripe | null = null
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+      apiVersion: '2026-02-25.clover',
+      typescript: true,
+    })
+  }
+  return _stripe
+}
 
 // ============================================================
 // Sávos árazás (fő/hó alapú, minimum havidíjjal)

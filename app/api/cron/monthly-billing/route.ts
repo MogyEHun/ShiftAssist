@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { stripe } from '@/lib/stripe'
+import { getStripe } from '@/lib/stripe'
 import { calculateSeatPrice, formatHUF } from '@/lib/billing'
 import type { BillingPlan } from '@/lib/billing'
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       const amountHUF = calculateSeatPrice(plan, seatCount)
 
       // Stripe manual invoice létrehozása
-      const invoice = await stripe.invoices.create({
+      const invoice = await getStripe().invoices.create({
         customer: company.stripe_customer_id!,
         auto_advance: true,
         collection_method: 'charge_automatically',
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
       })
 
       // Invoice item hozzáadása
-      await stripe.invoiceItems.create({
+      await getStripe().invoiceItems.create({
         customer: company.stripe_customer_id!,
         invoice: invoice.id,
         amount: amountHUF * 100, // Stripe fillérben vár (de HUF esetén egész)
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       })
 
       // Invoice véglegesítése
-      await stripe.invoices.finalizeInvoice(invoice.id)
+      await getStripe().invoices.finalizeInvoice(invoice.id)
 
       // Billing history mentése
       const periodEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
