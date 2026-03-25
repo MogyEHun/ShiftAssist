@@ -1,0 +1,50 @@
+{
+  "name": "shiftsync-temp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "prebuild": "powershell -Command \"Remove-Item -Path '.next' -Recurse -Force -ErrorAction SilentlyContinue\" || true",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@react-email/components": "^1.0.9",
+    "@stripe/stripe-js": "^8.9.0",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.99.1",
+    "@tanstack/react-virtual": "^3.13.22",
+    "date-fns": "^4.1.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.7",
+    "lucide-react": "^0.577.0",
+    "next": "14.2.35",
+    "openai": "^6.27.0",
+    "otplib": "^13.3.0",
+    "qrcode": "^1.5.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-is": "^19.2.4",
+    "recharts": "^3.8.0",
+    "resend": "^6.9.3",
+    "stripe": "^20.4.1",
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.37",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/web-push": "^3.6.4",
+    "dotenv": "^17.3.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}
