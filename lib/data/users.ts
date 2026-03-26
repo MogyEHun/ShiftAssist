@@ -10,6 +10,7 @@
  *   *_encrypted mezők NEM kerülnek a visszatérési értékbe
  */
 
+import { cache } from 'react'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { encrypt, decrypt, hashEmail, generatePseudonym } from '@/lib/encryption'
 import type { UserRole } from '@/types'
@@ -81,7 +82,7 @@ function decryptRow(row: Record<string, unknown>): DecryptedUser {
 // ─────────────────────────────────────────────────────────────
 
 /** Felhasználó lekérése ID alapján */
-export async function getUserById(userId: string): Promise<DecryptedUser | null> {
+export const getUserById = cache(async function getUserById(userId: string): Promise<DecryptedUser | null> {
   const admin = createAdminClient()
   const { data, error } = await admin
     .from('users')
@@ -91,7 +92,7 @@ export async function getUserById(userId: string): Promise<DecryptedUser | null>
 
   if (error || !data) return null
   return decryptRow(data as Record<string, unknown>)
-}
+})
 
 /** Felhasználó keresése email alapján (meghívó elfogadás, duplicate check) */
 export async function getUserByEmailHash(email: string): Promise<DecryptedUser | null> {
@@ -109,7 +110,7 @@ export async function getUserByEmailHash(email: string): Promise<DecryptedUser |
 }
 
 /** Összes felhasználó egy cégnél (visszafejtve) */
-export async function getCompanyUsers(
+export const getCompanyUsers = cache(async function getCompanyUsers(
   companyId: string,
   activeOnly = false
 ): Promise<DecryptedUser[]> {
@@ -121,7 +122,7 @@ export async function getCompanyUsers(
 
   if (error || !data) return []
   return (data as Record<string, unknown>[]).map(decryptRow)
-}
+})
 
 // ─────────────────────────────────────────────────────────────
 // Írások

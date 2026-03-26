@@ -48,16 +48,14 @@ export default async function SchedulePage({ searchParams }: Props) {
 
   // ------- ELÉRHETŐSÉG NÉZET (manager) -------
   if (view === 'availability' && isManager) {
-    const { data: companyRow } = await supabase
-      .from('users')
-      .select('companies(availability_enabled)')
-      .eq('id', user.id)
-      .single()
-    const availabilityEnabled = (companyRow?.companies as { availability_enabled?: boolean } | null)?.availability_enabled ?? true
     const currentMonth = searchParams.month && isValid(parseISO(searchParams.month + '-01'))
       ? searchParams.month
       : format(new Date(), 'yyyy-MM')
-    const staff = await getCompanyAvailabilityDates(currentMonth)
+    const [{ data: companyRow }, staff] = await Promise.all([
+      supabase.from('users').select('companies(availability_enabled)').eq('id', user.id).single(),
+      getCompanyAvailabilityDates(currentMonth),
+    ])
+    const availabilityEnabled = (companyRow?.companies as { availability_enabled?: boolean } | null)?.availability_enabled ?? true
 
     return (
       <div className="p-6">
