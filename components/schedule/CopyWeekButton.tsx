@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format, addWeeks, parseISO } from 'date-fns'
 import { Copy } from 'lucide-react'
 import { copyWeekShifts } from '@/app/actions/schedule'
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function CopyWeekButton({ weekStart }: Props) {
+  const router = useRouter()
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
@@ -24,17 +26,20 @@ export function CopyWeekButton({ weekStart }: Props) {
     setConfirm(false)
     if (result.error) {
       setMessage(`Hiba: ${result.error}`)
+      setTimeout(() => setMessage(null), 4000)
+    } else if (result.count > 0) {
+      router.push(`/dashboard/schedule?week=${nextWeek}`)
     } else {
-      setMessage(result.count > 0 ? `${result.count} műszak másolva a következő hétre (vázlat)` : 'Nincs másolható műszak ezen a héten.')
+      setMessage('Nincs másolható műszak ezen a héten.')
+      setTimeout(() => setMessage(null), 4000)
     }
-    setTimeout(() => setMessage(null), 4000)
   }
 
   return (
     <div className="relative flex items-center gap-2">
       {confirm ? (
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm">
-          <span className="text-amber-800">Átmásolja az előző hét beosztását erre a hétre (vázlatként)?</span>
+          <span className="text-amber-800">Átmásolja ezt a heti beosztást a következő hétre (vázlatként)?</span>
           <button
             onClick={handleCopy}
             disabled={pending}

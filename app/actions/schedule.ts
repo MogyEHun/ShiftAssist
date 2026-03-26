@@ -950,13 +950,18 @@ export async function copyWeekShifts(
         new Date(e.end_time) > new Date(n.start_time)
       )
     )
-    if (safeShifts.length === 0) return { count: 0 }
+    if (safeShifts.length === 0) {
+      if (newShifts.length > 0) {
+        return { count: 0, error: 'A következő héten már megvannak ezek a műszakok.' }
+      }
+      return { count: 0 }
+    }
 
     const { error: insertError } = await admin.from('shifts').insert(safeShifts)
     if (insertError) return { count: 0, error: insertError.message }
 
     revalidatePath('/dashboard/schedule')
-    return { count: newShifts.length }
+    return { count: safeShifts.length }
   } catch (e: any) {
     return { count: 0, error: e.message || 'Ismeretlen hiba' }
   }
