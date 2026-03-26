@@ -4,8 +4,9 @@ import { useState, useTransition } from 'react'
 import { Settings, StickyNote, Zap, Download, CheckCircle2, XCircle } from 'lucide-react'
 import {
   changePlan, extendTrial, setCompanyStatus,
-  updateCompanyNotes, setFeatureFlag, exportCompanyData, FEATURE_FLAGS,
+  updateCompanyNotes, setFeatureFlag, exportCompanyData,
 } from '@/app/actions/super-admin'
+import { FEATURE_FLAGS } from '@/lib/feature-flags'
 
 interface Props {
   companyId: string
