@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
@@ -10,6 +10,13 @@ import { login } from '@/app/actions/auth'
 export default function LoginPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('type=recovery') && hash.includes('access_token=')) {
+      router.replace('/reset-password' + hash)
+    }
+  }, [])
   const [error, setError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {

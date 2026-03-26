@@ -1,13 +1,32 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
 import { resetPassword } from '@/app/actions/auth'
+import { createClient } from '@/lib/supabase/client'
 
 export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sessionReady, setSessionReady] = useState(false)
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.slice(1))
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+      if (accessToken && refreshToken) {
+        const supabase = createClient()
+        supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+          .then(() => setSessionReady(true))
+          .catch(() => setError('Érvénytelen vagy lejárt link. Kérj új jelszó-visszaállítási emailt.'))
+        return
+      }
+    }
+    setSessionReady(true)
+  }, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -62,7 +81,7 @@ export default function ResetPasswordPage() {
           </div>
         )}
 
-        <Button type="submit" loading={loading} fullWidth className="mt-2">
+        <Button type="submit" loading={loading} disabled={!sessionReady} fullWidth className="mt-2">
           Jelszó mentése
         </Button>
       </form>
