@@ -118,6 +118,9 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
   const [suggestions, setSuggestions] = useState<AiShiftSuggestion[]>([])
   const [acceptingAll, setAcceptingAll] = useState(false)
 
+  // Drag error banner
+  const [dragError, setDragError] = useState<string | null>(null)
+
   // Modal állapot
   const [modal, setModal] = useState<{
     open: boolean
@@ -239,6 +242,8 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
       dispatch({ type: 'ROLLBACK', shifts: snapshot })
       setUndoSnapshot(null)
       setUndoData(null)
+      setDragError(result.error)
+      setTimeout(() => setDragError(null), 4000)
     }
   }
 
@@ -736,6 +741,14 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
           {activeShift ? <DragOverlayCard shift={activeShift} /> : null}
         </DragOverlay>
       </DndContext>
+
+      {/* Drag error banner */}
+      {dragError && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-red-50 border border-red-200 text-red-800 text-sm px-4 py-2 rounded-xl shadow-md">
+          <AlertTriangle className="h-4 w-4 text-red-500 shrink-0" />
+          {dragError}
+        </div>
+      )}
 
       {/* Undo sáv */}
       <UndoBar

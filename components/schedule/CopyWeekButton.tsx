@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { format, subWeeks, parseISO } from 'date-fns'
+import { format, addWeeks, parseISO } from 'date-fns'
 import { Copy } from 'lucide-react'
 import { copyWeekShifts } from '@/app/actions/schedule'
 
@@ -14,18 +14,18 @@ export function CopyWeekButton({ weekStart }: Props) {
   const [message, setMessage] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
 
-  const prevWeek = format(subWeeks(parseISO(weekStart), 1), 'yyyy-MM-dd')
+  const nextWeek = format(addWeeks(parseISO(weekStart), 1), 'yyyy-MM-dd')
 
   async function handleCopy() {
     setPending(true)
     setMessage(null)
-    const result = await copyWeekShifts(prevWeek, weekStart)
+    const result = await copyWeekShifts(weekStart, nextWeek)
     setPending(false)
     setConfirm(false)
     if (result.error) {
       setMessage(`Hiba: ${result.error}`)
     } else {
-      setMessage(result.count > 0 ? `${result.count} műszak másolva (vázlat)` : 'Nincs másolható műszak az előző héten.')
+      setMessage(result.count > 0 ? `${result.count} műszak másolva a következő hétre (vázlat)` : 'Nincs másolható műszak ezen a héten.')
     }
     setTimeout(() => setMessage(null), 4000)
   }

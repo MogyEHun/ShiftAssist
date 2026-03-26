@@ -313,7 +313,7 @@ async function checkShiftConflict(
     }
   }
 
-  // Jóváhagyott szabadság ütközés ellenőrzés (nem blokkoló – figyelmeztetés)
+  // Jóváhagyott szabadság ütközés ellenőrzés (blokkoló)
   const shiftDate = startTime.slice(0, 10) // YYYY-MM-DD
   const { data: approvedLeave } = await supabase
     .from('leave_requests')
@@ -326,7 +326,7 @@ async function checkShiftConflict(
     .limit(1)
 
   if (approvedLeave && approvedLeave.length > 0) {
-    return { conflict: false, warning: 'Figyelmeztetés: a dolgozónak jóváhagyott szabadsága van ezen a napon.' }
+    return { conflict: true, warning: 'Ütközés: a dolgozónak jóváhagyott szabadsága van ezen a napon.' }
   }
 
   return { conflict: false, warning: null }
@@ -916,7 +916,25 @@ export async function copyWeekShifts(
       created_by: currentUser.id,
     }))
 
-    const { error: insertError } = await admin.from('shifts').insert(newShifts)
+    // Meglévő műszakok a célhéten – ütközőket kiszűrjük
+    const { data: existing } = await admin
+      .from('shifts')
+      .select('user_id, start_time, end_time')
+      .eq('company_id', currentUser.company_id)
+      .neq('status', 'cancelled')
+      .gte('start_time', targetStart.toISOString())
+      .lt('start_time', addDays(targetStart, 7).toISOString())
+
+    const safeShifts = newShifts.filter(n =>
+      !(existing ?? []).some(e =>
+        e.user_id === n.user_id &&
+        new Date(e.start_time) < new Date(n.end_time) &&
+        new Date(e.end_time) > new Date(n.start_time)
+      )
+    )
+    if (safeShifts.length === 0) return { count: 0 }
+
+    const { error: insertError } = await admin.from('shifts').insert(safeShifts)
     if (insertError) return { count: 0, error: insertError.message }
 
     revalidatePath('/dashboard/schedule')
