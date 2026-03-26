@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { CalendarDays, Plus, X, ChevronRight, ChevronLeft, Check, Calendar, ClipboardCheck, Umbrella, Users, Minus } from 'lucide-react'
 import { Input } from '@/components/ui/Input'
@@ -59,7 +59,7 @@ const STEPS = ['Vállalkozás', 'Csapat', 'Csomag', 'Munkakörök', 'Kész']
 
 // ─── Komponens ─────────────────────────────────────────────
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const isPreview = searchParams.get('preview') === '1'
@@ -467,5 +467,13 @@ export default function OnboardingPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingContent />
+    </Suspense>
   )
 }
