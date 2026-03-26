@@ -481,6 +481,24 @@ export async function updateShift(
       ...(payload.notes !== undefined && { notes: payload.notes ? sanitizeNote(payload.notes) : null }),
     }
 
+    // Ütközés ellenőrzés időpont vagy dolgozó változásakor
+    if (sanitizedUpdate.start_time || sanitizedUpdate.end_time || sanitizedUpdate.user_id) {
+      const supabase = createClient()
+      const admin2 = createAdminClient()
+      const { data: existing } = await admin2.from('shifts').select('user_id, start_time, end_time').eq('id', shiftId).single()
+      if (existing) {
+        const checkUserId = sanitizedUpdate.user_id ?? existing.user_id
+        const checkStart = sanitizedUpdate.start_time ?? existing.start_time
+        const checkEnd = sanitizedUpdate.end_time ?? existing.end_time
+        if (checkUserId) {
+          const { conflict, warning } = await checkShiftConflict(
+            supabase, currentUser.company_id, checkUserId, checkStart, checkEnd, shiftId
+          )
+          if (conflict) return { data: null, error: warning! }
+        }
+      }
+    }
+
     const admin = createAdminClient()
     const { data, error } = await admin
       .from('shifts')
