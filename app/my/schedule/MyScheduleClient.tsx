@@ -111,12 +111,12 @@ export function MyScheduleClient({ shifts: initialShifts, view, currentDate, ava
         <h1 className="text-xl font-bold text-gray-900 flex-1">
           {view === 'availability' ? t('mySchedule.myAvailability') : t('mySchedule.title')}
         </h1>
-        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1">
+        <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto flex-shrink-0">
           {scheduleViews.map(({ v, label }) => (
             <button
               key={v}
               onClick={() => changeView(v)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
                 view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
               }`}
             >

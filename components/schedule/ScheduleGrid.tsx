@@ -302,6 +302,17 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
       }
     }
 
+    // Published műszak ütközés ellenőrzés
+    const hasPublishedInTarget = shifts.some(
+      s => s.user_id === (newUserId || draggedShift.user_id) &&
+           s.start_time.slice(0, 10) === newDateISO &&
+           s.status === 'published' &&
+           s.id !== draggedShift.id
+    )
+    if (hasPublishedInTarget && !window.confirm('Ennek a dolgozónak már van fixált műszakja ezen a napon. Biztosan folytatod?')) {
+      return
+    }
+
     await executeMoveShift(draggedShift, newUserId || null, newStartISO, newEndISO)
   }
 
@@ -352,8 +363,14 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
 
   // Modal kezelők
   const openCreateModal = useCallback((userId: string, dateISO: string) => {
+    const hasPublished = shifts.some(
+      s => s.user_id === userId && s.start_time.slice(0, 10) === dateISO && s.status === 'published'
+    )
+    if (hasPublished && !window.confirm('Ennek a dolgozónak már van fixált műszakja ezen a napon. Biztosan hozzáadsz egy újat?')) {
+      return
+    }
     setModal({ open: true, mode: 'create', prefilledUserId: userId, prefilledDate: dateISO })
-  }, [])
+  }, [shifts])
 
   const openEditModal = useCallback((shift: ShiftWithAssignee) => {
     setModal({ open: true, mode: 'edit', shift })
