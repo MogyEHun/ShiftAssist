@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { Sparkles, Download, Send, PenSquare } from 'lucide-react'
-import { createShift } from '@/app/actions/schedule'
+import { Sparkles, Download, Send, PenSquare, Trash2 } from 'lucide-react'
+import { createShift, deleteShift } from '@/app/actions/schedule'
 import { exportSchedulePDF } from '@/lib/exportSchedulePDF'
 import { PublishModal } from './PublishModal'
 import { AiScheduleWizard } from './AiScheduleWizard'
@@ -46,6 +46,7 @@ export function ScheduleActionsBar({
   const [showPublishModal, setShowPublishModal] = useState(false)
   const [showAiModal, setShowAiModal] = useState(false)
   const [showAttendanceModal, setShowAttendanceModal] = useState(false)
+  const [deletingDrafts, setDeletingDrafts] = useState(false)
 
   // Standalone AI suggestions (when ScheduleGrid doesn't handle them via reducer)
   const [suggestions, setSuggestions] = useState<AiShiftSuggestion[]>([])
@@ -82,6 +83,17 @@ export function ScheduleActionsBar({
     } else {
       setSuggestions(sgs)
     }
+  }
+
+  async function deleteAllDrafts() {
+    if (draftShifts.length === 0) return
+    if (!confirm(`Biztosan törölsz ${draftShifts.length} tervezetet?`)) return
+    setDeletingDrafts(true)
+    for (const s of draftShifts) {
+      try { await deleteShift(s.id) } catch {}
+    }
+    setDeletingDrafts(false)
+    router.refresh()
   }
 
   async function acceptAllSuggestions() {
@@ -142,6 +154,16 @@ export function ScheduleActionsBar({
           >
             <Send className="h-3.5 w-3.5" />
             {t('schedule.publish')}{draftShifts.length > 0 ? ` (${draftShifts.length})` : ''}
+          </button>
+        )}
+        {isManager && draftShifts.length > 0 && (
+          <button
+            onClick={deleteAllDrafts}
+            disabled={deletingDrafts}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            {deletingDrafts ? 'Törlés...' : 'Tervezetek törlése'}
           </button>
         )}
         {isManager && (
