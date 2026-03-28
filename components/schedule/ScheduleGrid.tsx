@@ -717,14 +717,16 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                           assignee: null,
                         }
                         return (
-                          <div key={sg.suggestion_id} className="px-1.5 pb-1">
-                            <ShiftCard
-                              shift={fakeShift}
-                              role={userRole}
-                              currentUserId={currentUserId}
-                              onEdit={() => {}}
-                              isSuggestion
-                            />
+                          <div key={sg.suggestion_id} className="px-1.5 pb-1 h-[96px] flex flex-col">
+                            <div className="flex-1 min-h-0">
+                              <ShiftCard
+                                shift={fakeShift}
+                                role={userRole}
+                                currentUserId={currentUserId}
+                                onEdit={() => {}}
+                                isSuggestion
+                              />
+                            </div>
                           </div>
                         )
                       })}
