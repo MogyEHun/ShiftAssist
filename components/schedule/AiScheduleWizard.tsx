@@ -25,6 +25,9 @@ export function AiScheduleWizard({ onGenerated, onClose, positions = [], employe
   const [openFrom, setOpenFrom] = useState('08:00')
   const [openTo, setOpenTo] = useState('20:00')
   const [minStaff, setMinStaff] = useState(2)
+  const [shiftDurationHours, setShiftDurationHours] = useState(8)
+  const [shiftsPerDay, setShiftsPerDay] = useState<1 | 2>(1)
+  const [workDaysPerEmployee, setWorkDaysPerEmployee] = useState(5)
 
   // Step 3
   const [budgetCap, setBudgetCap] = useState('')
@@ -71,6 +74,9 @@ export function AiScheduleWizard({ onGenerated, onClose, positions = [], employe
         minStaffPerDay: minStaff,
         openFrom,
         openTo,
+        shiftDurationHours,
+        shiftsPerDay,
+        workDaysPerEmployee,
         note: note || undefined,
         budgetCapFt: budgetCap ? parseInt(budgetCap) : undefined,
         positionBreakdown: posBreakdown.filter(p => p.count > 0),
@@ -142,6 +148,45 @@ export function AiScheduleWizard({ onGenerated, onClose, positions = [], employe
                   <input type="time" value={openTo} onChange={e => setOpenTo(e.target.value)}
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1a5c3a]/30 focus:border-[#1a5c3a] outline-none" />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Műszakhossz</label>
+                <select value={shiftDurationHours} onChange={e => setShiftDurationHours(Number(e.target.value))}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1a5c3a]/30 focus:border-[#1a5c3a] outline-none bg-white">
+                  {[4, 6, 8, 10, 12].map(h => (
+                    <option key={h} value={h}>{h} óra</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Napi műszakforgatás</label>
+                <div className="flex gap-3">
+                  {([1, 2] as const).map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setShiftsPerDay(n)}
+                      className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium border transition-colors ${
+                        shiftsPerDay === n
+                          ? 'bg-[#1a5c3a] text-white border-[#1a5c3a]'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {n === 1 ? '1 műszak/nap' : '2 műszak/nap'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  {shiftsPerDay === 2 ? 'Délelőttes és délutános műszak váltakozva.' : 'Mindenki ugyanabban a műszakban dolgozik.'}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Munkanapok/fő/hét: <span className="text-[#1a5c3a] font-semibold">{workDaysPerEmployee} nap</span>
+                </label>
+                <input type="range" min={1} max={7} value={workDaysPerEmployee} onChange={e => setWorkDaysPerEmployee(Number(e.target.value))}
+                  className="w-full accent-[#1a5c3a]" />
+                <div className="flex justify-between text-xs text-gray-400 mt-1"><span>1</span><span>7</span></div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">

@@ -19,6 +19,9 @@ interface GenerateScheduleParams {
   minStaffPerDay: number
   openFrom: string
   openTo: string
+  shiftDurationHours?: number
+  shiftsPerDay?: 1 | 2
+  workDaysPerEmployee?: number
   note?: string
   budgetCapFt?: number
   weeklyHourLimit?: number
@@ -126,13 +129,42 @@ export async function generateSchedule(
     .gte('date', params.weekStart)
     .lte('date', weekEnd)
 
+  // Műszak template(k) kiszámolása
+  const shiftDur = params.shiftDurationHours ?? 8
+  const numShifts = params.shiftsPerDay ?? 1
+  const workDays = params.workDaysPerEmployee ?? 5
+
+  function timeToMinutes(t: string) {
+    const [h, m] = t.split(':').map(Number)
+    return h * 60 + m
+  }
+  function minutesToTime(m: number) {
+    const hh = String(Math.floor(m / 60) % 24).padStart(2, '0')
+    const mm = String(m % 60).padStart(2, '0')
+    return `${hh}:${mm}`
+  }
+
+  const openMinutes = timeToMinutes(params.openFrom)
+  const closeMinutes = timeToMinutes(params.openTo)
+  const durMinutes = shiftDur * 60
+
+  let shiftTemplates: string
+  if (numShifts === 1) {
+    const end = minutesToTime(Math.min(openMinutes + durMinutes, closeMinutes))
+    shiftTemplates = `1 műszak/nap: ${params.openFrom}–${end}`
+  } else {
+    const mid = minutesToTime(openMinutes + Math.round((closeMinutes - openMinutes) / 2))
+    shiftTemplates = `2 műszak/nap:\n  - Délelőtti: ${params.openFrom}–${mid}\n  - Délutáni: ${mid}–${params.openTo}`
+  }
+
   // Prompt összeállítása
   const prefs = params.preferences ?? {}
   const prefLines = [
-    prefs.respectAvailability ? '- Vedd figyelembe a dolgozók elérhetőségét' : '',
-    prefs.respectMaxHours ? '- Ne lépd túl a 48 órás heti limitet' : '',
-    prefs.distributeEvenly ? '- Osszd el egyenletesen a műszakokat' : '',
+    prefs.respectAvailability ? '- Vedd figyelembe az elérhetőséget: ne osztj be olyat aki unavailable' : '',
+    prefs.distributeEvenly ? '- Osszd el egyenletesen a műszakokat a dolgozók között' : '',
     prefs.preferFullTime ? '- Részesítsd előnyben a teljes műszakokat' : '',
+    `- Minden dolgozó max ${params.weeklyHourLimit ?? 48} órát dolgozhat ezen a héten`,
+    `- Minden dolgozó kb. ${workDays} napot dolgozzon a héten (H–V prioritás)`,
   ].filter(Boolean).join('\n')
 
   const posBreakdown = params.positionBreakdown?.length
@@ -151,50 +183,68 @@ export async function generateSchedule(
     })
     .join('\n')
 
-  const prompt = `Készíts heti beosztást a következő feltételek alapján:
+  const empHourOverrides = (params.employeeHourLimits ?? [])
+    .map(({ userId, limit }) => {
+      const name = employeeMap.get(userId)?.full_name ?? userId
+      return `  - ${name}: max ${limit} óra`
+    }).join('\n')
+
+  const systemMessage = `Te egy precíz munkarendbeosztó asszisztens vagy. Feladatod teljes heti beosztást generálni a megadott feltételek szerint. Mindig valid JSON objektumot adsz vissza, semmi mást.`
+
+  const userMessage = `Készíts TELJES heti beosztást az alábbi feltételek szerint.
+
+FONTOS: Minden elérhető dolgozóhoz, minden munkanapra generálj műszakot (kivéve ha szabadságon van vagy "unavailable").
 
 Időszak: ${params.weekStart} – ${weekEnd}
-Nyitvatartás: ${params.openFrom}–${params.openTo}
-Minimum ${params.minStaffPerDay} dolgozó/nap
+Műszakstruktúra: ${shiftTemplates}
+Minimum ${params.minStaffPerDay} dolgozó egyidejűleg naponta
 ${budgetLine}
 ${posBreakdown}
-${prefLines ? 'Preferenciák:\n' + prefLines : ''}
-${params.note ? 'Megjegyzés: ' + params.note : ''}
 
-Elérhető dolgozók:
-${employees.map(e => `- ${e.id}: ${e.full_name} (${e.position ?? 'általános'}, órabér: ${(e as any).hourly_rate ?? 'N/A'} Ft/h)`).join('\n') || 'Nincs dolgozó'}
+Szabályok:
+${prefLines}
+${empHourOverrides ? 'Egyéni óralimitek:\n' + empHourOverrides : ''}
+${params.note ? 'Különleges megjegyzés: ' + params.note : ''}
+
+Dolgozók (id: név, pozíció, órabér):
+${employees.map(e => `- ${e.id}: ${e.full_name} (${e.position ?? 'általános'}${(e as any).hourly_rate ? ', ' + (e as any).hourly_rate + ' Ft/h' : ''})`).join('\n') || 'Nincs dolgozó'}
 
 Elérhetőségek ezen a héten:
-${availLines || '  Nincs adat'}
+${availLines || '  Nincs elérhetőségi adat (mindenki elérhető)'}
 
-Szabadságon lévők:
+Szabadságon lévők (ne osztd be őket a szabadság idején):
 ${leaveRequests?.map(l => {
     const name = employeeMap.get(l.user_id)?.full_name ?? l.user_id
     return `- ${name}: ${l.start_date} – ${l.end_date}`
   }).join('\n') || 'Senki'}
 
-Meglévő műszakok (ne duplikáld):
+Meglévő műszakok (ne duplikáld ezeket):
 ${existingShifts?.map(s => `- user_id:${s.user_id} ${s.start_time}–${s.end_time}`).join('\n') || 'Nincs még'}
 
-Visszaadj egy JSON tömböt. Minden elem:
+Visszaadj CSAK egy JSON objektumot ebben a formában:
 {
-  "suggestion_id": "<uuid>",
-  "user_id": "<dolgozó id vagy null>",
-  "start_time": "<ISO 8601>",
-  "end_time": "<ISO 8601>",
-  "required_position": "<pozíció vagy null>",
-  "notes": "<megjegyzés vagy null>"
-}
-
-Csak a JSON tömböt add vissza, semmi más szöveget.`
+  "shifts": [
+    {
+      "suggestion_id": "<uuid v4>",
+      "user_id": "<dolgozó id>",
+      "start_time": "<ISO 8601, pl: ${params.weekStart}T08:00:00>",
+      "end_time": "<ISO 8601>",
+      "required_position": "<pozíció vagy null>",
+      "notes": null
+    }
+  ]
+}`
 
   try {
     const response = await getOpenAI().chat.completions.create({
       model: AI_MODEL,
-      messages: [{ role: 'user', content: prompt }],
+      messages: [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: userMessage },
+      ],
       response_format: { type: 'json_object' },
-      temperature: 0.3,
-      max_tokens: 3000,
+      temperature: 0.2,
+      max_tokens: 6000,
     })
 
     const raw = response.choices[0]?.message?.content ?? '{}'
