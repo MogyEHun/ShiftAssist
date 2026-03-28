@@ -4,7 +4,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { isToday, parseISO } from 'date-fns'
 import { Plus, UmbrellaOff, AlertTriangle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { ShiftWithAssignee, LeaveRequest, Station } from '@/types'
+import { ShiftWithAssignee, LeaveRequest, Station, AiShiftSuggestion } from '@/types'
 import { ShiftCard } from './ShiftCard'
 
 interface Props {
@@ -20,6 +20,7 @@ interface Props {
   employeePosition?: string
   availabilityConflict?: boolean
   stations?: Station[]
+  suggestions?: AiShiftSuggestion[]
 }
 
 export function ScheduleCell({
@@ -35,6 +36,7 @@ export function ScheduleCell({
   employeePosition,
   availabilityConflict = false,
   stations = [],
+  suggestions = [],
 }: Props) {
   const [userId] = droppableId.split('::')
   const isManager = ['owner', 'admin', 'manager'].includes(role)
@@ -109,6 +111,40 @@ export function ScheduleCell({
                 employeePosition={employeePosition}
                 availabilityConflict={availabilityConflict}
                 station={stations.find(s => s.id === shift.station_id) ?? null}
+              />
+            </div>
+          )
+        })}
+
+        {/* AI javaslat kártyák – ugyanolyan flex-1 mint a rendes műszakok */}
+        {suggestions.map((sg) => {
+          const fakeShift: ShiftWithAssignee = {
+            id: sg.suggestion_id,
+            user_id: sg.user_id ?? '',
+            company_id: '',
+            start_time: sg.start_time,
+            end_time: sg.end_time,
+            required_position: sg.required_position,
+            status: 'draft',
+            notes: sg.notes,
+            title: sg.required_position ?? 'Javaslat',
+            type: 'fixed',
+            location: null,
+            station_id: null,
+            break_minutes: 0,
+            created_by: '',
+            created_at: '',
+            updated_at: '',
+            assignee: null,
+          }
+          return (
+            <div key={sg.suggestion_id} className="flex-1 min-h-0">
+              <ShiftCard
+                shift={fakeShift}
+                role={role}
+                currentUserId={currentUserId}
+                onEdit={() => {}}
+                isSuggestion
               />
             </div>
           )

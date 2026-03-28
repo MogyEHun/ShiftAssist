@@ -8,6 +8,8 @@ import { StationsClient } from '@/app/dashboard/settings/stations/StationsClient
 import { SitesClient } from '@/app/dashboard/settings/sites/SitesClient'
 import { ReliabilityClient } from '@/components/staff/ReliabilityClient'
 import { getReliabilityStats } from '@/app/actions/reliability'
+import { PositionsClient } from '@/components/staff/PositionsClient'
+import { getPositions } from '@/app/actions/positions'
 import { Info } from 'lucide-react'
 
 interface Props {
@@ -30,8 +32,18 @@ export default async function StaffPage({ searchParams }: Props) {
   const isPrivileged = ['owner', 'admin', 'manager'].includes(currentUser.role)
   const isOwnerOrAdmin = ['owner', 'admin'].includes(currentUser.role)
 
-  const validViews = ['staff', 'sites', 'stations', 'reliability']
+  const validViews = ['staff', 'sites', 'stations', 'reliability', 'positions']
   const view = validViews.includes(searchParams.view ?? '') ? (searchParams.view as string) : 'staff'
+
+  // ------- POZÍCIÓK NÉZET -------
+  if (view === 'positions' && isPrivileged) {
+    const positions = await getPositions()
+    return (
+      <div className="px-6 pt-6 pb-6">
+        <PositionsClient initialPositions={positions} />
+      </div>
+    )
+  }
 
   // ------- MEGBÍZHATÓSÁG NÉZET -------
   if (view === 'reliability' && isPrivileged) {

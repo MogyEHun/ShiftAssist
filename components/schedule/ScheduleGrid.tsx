@@ -26,7 +26,6 @@ import {
 } from '@/types'
 import { moveShift, requestSwap, createShift } from '@/app/actions/schedule'
 import { ScheduleCell } from './ScheduleCell'
-import { ShiftCard } from './ShiftCard'
 import { DragOverlayCard } from './DragOverlayCard'
 import { ShiftDetailPanel } from './ShiftDetailPanel'
 import { UndoBar } from './UndoBar'
@@ -116,13 +115,15 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
 
   // AI javaslatok – localStorage-ban perzisztálva, hogy navigáció után is megmaradjanak
   const suggestionsKey = `ai_suggestions_${weekStart}`
-  const [suggestions, setSuggestions] = useState<AiShiftSuggestion[]>(() => {
+  const [suggestions, setSuggestions] = useState<AiShiftSuggestion[]>([])
+  const [acceptingAll, setAcceptingAll] = useState(false)
+
+  useEffect(() => {
     try {
       const stored = localStorage.getItem(suggestionsKey)
-      return stored ? JSON.parse(stored) : []
-    } catch { return [] }
-  })
-  const [acceptingAll, setAcceptingAll] = useState(false)
+      if (stored) setSuggestions(JSON.parse(stored))
+    } catch {}
+  }, [suggestionsKey])
 
   function updateSuggestions(sgs: AiShiftSuggestion[]) {
     setSuggestions(sgs)
@@ -709,41 +710,8 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                         employeePosition={employee.position ?? undefined}
                         availabilityConflict={isUnavailable}
                         stations={scheduleData.stations}
+                        suggestions={cellSuggestions}
                       />
-                      {cellSuggestions.map((sg) => {
-                        const fakeShift: ShiftWithAssignee = {
-                          id: sg.suggestion_id,
-                          user_id: sg.user_id,
-                          company_id: '',
-                          start_time: sg.start_time,
-                          end_time: sg.end_time,
-                          required_position: sg.required_position,
-                          status: 'draft',
-                          notes: sg.notes,
-                          title: sg.required_position ?? 'Javaslat',
-                          type: 'fixed',
-                          location: null,
-                          station_id: null,
-                          break_minutes: 0,
-                          created_by: '',
-                          created_at: '',
-                          updated_at: '',
-                          assignee: null,
-                        }
-                        return (
-                          <div key={sg.suggestion_id} className="px-1.5 pb-1 h-[96px] flex flex-col">
-                            <div className="flex-1 min-h-0">
-                              <ShiftCard
-                                shift={fakeShift}
-                                role={userRole}
-                                currentUserId={currentUserId}
-                                onEdit={() => {}}
-                                isSuggestion
-                              />
-                            </div>
-                          </div>
-                        )
-                      })}
                     </div>
                   )
                 })}

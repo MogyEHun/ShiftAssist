@@ -19,6 +19,7 @@ const STAFF_ITEMS: { href: string; view: string; label: string; roles: string[] 
   { href: '/dashboard/staff', view: '', label: 'Személyzet', roles: null },
   { href: '/dashboard/tasks', view: 'tasks', label: 'Feladatok', roles: null },
   { href: '/dashboard/staff?view=reliability', view: 'reliability', label: 'Megbízhatóság', roles: ['owner', 'admin', 'manager'] },
+  { href: '/dashboard/staff?view=positions', view: 'positions', label: 'Pozíciók', roles: ['owner', 'admin', 'manager'] },
   { href: '/dashboard/staff?view=stations', view: 'stations', label: 'Állomások', roles: ['owner', 'admin', 'manager'] },
   { href: '/dashboard/staff?view=sites', view: 'sites', label: 'Telephelyek', roles: ['owner', 'admin'] },
 ]
