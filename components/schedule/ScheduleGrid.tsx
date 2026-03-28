@@ -533,7 +533,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
         <div ref={parentRef} className="bg-white rounded-xl border border-gray-200 overflow-auto flex-1">
           {/* ---- Fejléc (sticky) ---- */}
           <div
-            className="grid min-w-[900px] sticky top-0 z-20"
+            className="grid md:min-w-[900px] schedule-grid-col sticky top-0 z-20"
             style={{ gridTemplateColumns: '200px repeat(7, 1fr)' }}
           >
             <div className="bg-gray-50 border-b border-r border-gray-200 p-3" />
@@ -577,6 +577,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                     key={vr.key}
                     data-index={vr.index}
                     ref={rowVirtualizer.measureElement}
+                    className="schedule-grid-col"
                     style={{ position: 'absolute', top: vr.start, width: '100%', display: 'grid', gridTemplateColumns: '200px repeat(7, 1fr)' }}
                   >
                     <div className="border-b border-r border-gray-200 p-3 flex items-center gap-2 bg-white sticky left-0 z-10">
@@ -614,7 +615,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
             </div>
           ) : (
           <div
-            className="grid min-w-[900px]"
+            className="grid md:min-w-[900px] schedule-grid-col"
             style={{ gridTemplateColumns: '200px repeat(7, 1fr)' }}
           >
             {/* Dolgozó sorok (< 20 fő, nem virtualizált) */}
@@ -679,7 +680,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                   return (
                     <div
                       key={`cell-${employee.id}-${dayIdx}`}
-                      className="border-b border-r border-gray-200"
+                      className={`border-b border-r border-gray-200 ${dayIdx !== activeDayIdx ? 'hidden md:block' : ''}`}
                     >
                       <ScheduleCell
                         droppableId={droppableId}

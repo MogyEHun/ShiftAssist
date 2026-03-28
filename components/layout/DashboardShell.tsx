@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import { DashboardNav } from '@/components/layout/DashboardNav'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { Sidebar } from '@/components/layout/Sidebar'
 import { OnboardingTour } from '@/components/onboarding/OnboardingTour'
 
 interface DashboardShellProps {
@@ -12,6 +14,8 @@ interface DashboardShellProps {
 }
 
 export function DashboardShell({ companyName, userFullName, userRole, children }: DashboardShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   return (
     <div className="min-h-screen bg-[#f4f5f7]">
       <DashboardNav
@@ -25,8 +29,17 @@ export function DashboardShell({ companyName, userFullName, userRole, children }
         {children}
       </main>
 
+      {/* Mobil Sidebar drawer */}
+      <Sidebar
+        companyName={companyName}
+        userFullName={userFullName}
+        userRole={userRole}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
       {/* Alsó navigáció mobilon */}
-      <BottomNav />
+      <BottomNav onOpenMenu={() => setSidebarOpen(true)} />
 
       {/* Onboarding tour (csak owner/manager első belépésnél) */}
       <OnboardingTour userRole={userRole} />

@@ -29,3 +29,11 @@ body {
     padding-bottom: env(safe-area-inset-bottom);
   }
 }
+
+/* Beosztás rács: mobilon 2 oszlop (név + aktív nap), desktopnál az inline style érvényes */
+@media (max-width: 767px) {
+  .schedule-grid-col {
+    grid-template-columns: 160px 1fr !important;
+    min-width: 0 !important;
+  }
+}
