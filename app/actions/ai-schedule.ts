@@ -102,8 +102,6 @@ export async function generateSchedule(
   const allEmployees = await getCompanyUsers(profile.company_id, true)
   let employees = allEmployees.filter(e => ['employee', 'manager', 'admin'].includes(e.role))
 
-  const employeeMap = new Map(employees.map(e => [e.id, e]))
-
   // Szabadságosok
   const { data: leaveRequests } = await admin
     .from('leave_requests')
@@ -148,87 +146,130 @@ export async function generateSchedule(
   const closeMinutes = timeToMinutes(params.openTo)
   const durMinutes = shiftDur * 60
 
-  let shiftTemplates: string
-  if (numShifts === 1) {
-    const end = minutesToTime(Math.min(openMinutes + durMinutes, closeMinutes))
-    shiftTemplates = `1 műszak/nap: ${params.openFrom}–${end}`
-  } else {
-    const mid = minutesToTime(openMinutes + Math.round((closeMinutes - openMinutes) / 2))
-    shiftTemplates = `2 műszak/nap:\n  - Délelőtti: ${params.openFrom}–${mid}\n  - Délutáni: ${mid}–${params.openTo}`
+  const prefs = params.preferences ?? {}
+
+  // Kiszámolt műszakidők
+  const openMin = openMinutes
+  const closeMin = closeMinutes
+  function calcShiftTimes(slotIndex: number): { start: string; end: string } {
+    if (numShifts === 1) {
+      return {
+        start: params.openFrom,
+        end: minutesToTime(Math.min(openMin + durMinutes, closeMin)),
+      }
+    }
+    const mid = openMin + Math.round((closeMin - openMin) / 2)
+    return slotIndex % 2 === 0
+      ? { start: params.openFrom, end: minutesToTime(mid) }
+      : { start: minutesToTime(mid), end: params.openTo }
   }
 
-  // Prompt összeállítása
-  const prefs = params.preferences ?? {}
-  const prefLines = [
-    prefs.respectAvailability ? '- Vedd figyelembe az elérhetőséget: ne osztj be olyat aki unavailable' : '',
-    prefs.distributeEvenly ? '- Osszd el egyenletesen a műszakokat a dolgozók között' : '',
-    prefs.preferFullTime ? '- Részesítsd előnyben a teljes műszakokat' : '',
-    `- Minden dolgozó max ${params.weeklyHourLimit ?? 48} órát dolgozhat ezen a héten`,
-    `- Minden dolgozó kb. ${workDays} napot dolgozzon a héten (H–V prioritás)`,
-  ].filter(Boolean).join('\n')
+  // Szabadság lookup
+  const leaveByUser = new Map<string, { start_date: string; end_date: string }[]>()
+  for (const l of leaveRequests ?? []) {
+    if (!leaveByUser.has(l.user_id)) leaveByUser.set(l.user_id, [])
+    leaveByUser.get(l.user_id)!.push(l)
+  }
 
-  const posBreakdown = params.positionBreakdown?.length
-    ? 'Pozíció igény naponta:\n' + params.positionBreakdown.map(p => `  - ${p.position}: ${p.count} fő`).join('\n')
-    : ''
+  // Meglévő műszakok lookup
+  const existingByUser = new Map<string, Set<string>>()
+  for (const s of existingShifts ?? []) {
+    const date = s.start_time.slice(0, 10)
+    if (!existingByUser.has(s.user_id)) existingByUser.set(s.user_id, new Set())
+    existingByUser.get(s.user_id)!.add(date)
+  }
 
-  const budgetLine = params.budgetCapFt
-    ? `Heti bérköltség maximum: ${params.budgetCapFt.toLocaleString('hu-HU')} Ft`
-    : ''
+  // Unavailable lookup
+  const unavailSet = new Set<string>()
+  if (prefs.respectAvailability) {
+    for (const a of availability ?? []) {
+      if (a.status === 'unavailable') unavailSet.add(`${a.user_id}:${a.date}`)
+    }
+  }
 
-  const availLines = (availability ?? [])
-    .map(a => {
-      const name = employeeMap.get(a.user_id)?.full_name ?? a.user_id
-      const detail = a.status === 'partial' ? ` (${a.from_time?.slice(0,5)}–${a.to_time?.slice(0,5)})` : ''
-      return `  - ${name} ${a.date}: ${a.status}${detail}`
-    })
+  const dayLabels = ['Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat', 'Vasárnap']
+
+  // Server-side: előre kiszámolni ki mikor dolgozik
+  interface Slot {
+    userId: string
+    name: string
+    position: string | null
+    date: string
+    dayLabel: string
+    start: string
+    end: string
+  }
+  const requiredSlots: Slot[] = []
+  let slotCounter = 0
+
+  for (const emp of employees) {
+    const leaves = leaveByUser.get(emp.id) ?? []
+    const existingDates = existingByUser.get(emp.id) ?? new Set()
+    let daysAssigned = existingDates.size
+
+    for (let i = 0; i < weekDays.length; i++) {
+      if (daysAssigned >= workDays) break
+      const day = weekDays[i]
+      if (existingDates.has(day)) continue
+      const onLeave = leaves.some(l => l.start_date <= day && l.end_date >= day)
+      if (onLeave) continue
+      if (unavailSet.has(`${emp.id}:${day}`)) continue
+
+      const { start, end } = calcShiftTimes(slotCounter++)
+      requiredSlots.push({
+        userId: emp.id,
+        name: emp.full_name,
+        position: emp.position,
+        date: day,
+        dayLabel: dayLabels[i],
+        start,
+        end,
+      })
+      daysAssigned++
+    }
+  }
+
+  if (requiredSlots.length === 0) {
+    return { error: 'Nincs generálandó műszak (mindenki be van osztva vagy szabadságon van).' }
+  }
+
+  // Ha nincs speciális utasítás, AI nélkül generálunk
+  if (!params.note) {
+    const { randomUUID } = await import('crypto')
+    const directShifts: AiShiftSuggestion[] = requiredSlots.map(s => ({
+      suggestion_id: randomUUID(),
+      user_id: s.userId,
+      start_time: `${s.date}T${s.start}:00`,
+      end_time: `${s.date}T${s.end}:00`,
+      required_position: s.position ?? null,
+      notes: null,
+    }))
+    await admin.from('ai_schedule_requests').insert({ company_id: profile.company_id })
+    return { data: directShifts }
+  }
+
+  // Ha van speciális utasítás → AI módosíthatja a slotokat
+  const systemMessage = `Te egy precíz munkarendbeosztó asszisztens vagy. Kapsz egy előre kiszámított műszaklistát és speciális utasítást. Az utasítás alapján módosíthatod a listát (időpontok, pozíciók, megjegyzések), de NE töröld és NE adj hozzá sorokat. Mindig valid JSON objektumot adsz vissza, semmi mást.`
+
+  const slotList = requiredSlots
+    .map((s, i) => `${i + 1}. user_id:"${s.userId}" nev:"${s.name}" datum:"${s.date}" (${s.dayLabel}) start:"${s.start}" end:"${s.end}" pozicio:"${s.position ?? 'nincs'}"`)
     .join('\n')
 
-  const empHourOverrides = (params.employeeHourLimits ?? [])
-    .map(({ userId, limit }) => {
-      const name = employeeMap.get(userId)?.full_name ?? userId
-      return `  - ${name}: max ${limit} óra`
-    }).join('\n')
+  const userMessage = `Az alábbi ${requiredSlots.length} műszakot kell visszaadnod JSON formában.
 
-  const systemMessage = `Te egy precíz munkarendbeosztó asszisztens vagy. Feladatod teljes heti beosztást generálni a megadott feltételek szerint. Mindig valid JSON objektumot adsz vissza, semmi mást.`
+Speciális utasítás (csak erre figyelj, egyébként ne változtass): ${params.note}
 
-  const userMessage = `Készíts TELJES heti beosztást az alábbi feltételek szerint.
+Műszakok:
+${slotList}
 
-FONTOS: Minden elérhető dolgozóhoz, minden munkanapra generálj műszakot (kivéve ha szabadságon van vagy "unavailable").
-
-Időszak: ${params.weekStart} – ${weekEnd}
-Műszakstruktúra: ${shiftTemplates}
-Minimum ${params.minStaffPerDay} dolgozó egyidejűleg naponta
-${budgetLine}
-${posBreakdown}
-
-Szabályok:
-${prefLines}
-${empHourOverrides ? 'Egyéni óralimitek:\n' + empHourOverrides : ''}
-${params.note ? 'Különleges megjegyzés: ' + params.note : ''}
-
-Dolgozók (id: név, pozíció, órabér):
-${employees.map(e => `- ${e.id}: ${e.full_name} (${e.position ?? 'általános'}${(e as any).hourly_rate ? ', ' + (e as any).hourly_rate + ' Ft/h' : ''})`).join('\n') || 'Nincs dolgozó'}
-
-Elérhetőségek ezen a héten:
-${availLines || '  Nincs elérhetőségi adat (mindenki elérhető)'}
-
-Szabadságon lévők (ne osztd be őket a szabadság idején):
-${leaveRequests?.map(l => {
-    const name = employeeMap.get(l.user_id)?.full_name ?? l.user_id
-    return `- ${name}: ${l.start_date} – ${l.end_date}`
-  }).join('\n') || 'Senki'}
-
-Meglévő műszakok (ne duplikáld ezeket):
-${existingShifts?.map(s => `- user_id:${s.user_id} ${s.start_time}–${s.end_time}`).join('\n') || 'Nincs még'}
-
-Visszaadj CSAK egy JSON objektumot ebben a formában:
+Visszaadj CSAK ezt a JSON objektumot (pontosan ${requiredSlots.length} elem a shifts tömbben):
 {
   "shifts": [
     {
       "suggestion_id": "<uuid v4>",
-      "user_id": "<dolgozó id>",
-      "start_time": "<ISO 8601, pl: ${params.weekStart}T08:00:00>",
-      "end_time": "<ISO 8601>",
+      "user_id": "<az adott sor user_id-ja>",
+      "start_time": "<YYYY-MM-DDTHH:MM:00>",
+      "end_time": "<YYYY-MM-DDTHH:MM:00>",
       "required_position": "<pozíció vagy null>",
       "notes": null
     }

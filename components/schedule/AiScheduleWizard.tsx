@@ -133,6 +133,19 @@ export function AiScheduleWizard({ onGenerated, onClose, positions = [], employe
                 <input type="date" value={weekStart} onChange={e => setWeekStart(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1a5c3a]/30 focus:border-[#1a5c3a] outline-none" />
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Speciális utasítás az AI-nak <span className="text-gray-400 font-normal">(opcionális)</span>
+                </label>
+                <textarea
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="pl. Kovács Márton ne dolgozzon pénteken, Nagy Anna csak délelőttes műszakot kapjon..."
+                  rows={3}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1a5c3a]/30 focus:border-[#1a5c3a] outline-none resize-none"
+                />
+                <p className="text-xs text-gray-400 mt-1">Ha üres, az AI nélküli automatikus beosztás fut (gyorsabb).</p>
+              </div>
             </>
           )}
 
