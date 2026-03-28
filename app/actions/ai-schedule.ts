@@ -244,10 +244,14 @@ Visszaadj CSAK egy JSON objektumot ebben a formában:
       ],
       response_format: { type: 'json_object' },
       temperature: 0.2,
-      max_tokens: 6000,
+      max_tokens: 16000,
     })
 
-    const raw = response.choices[0]?.message?.content ?? '{}'
+    const choice = response.choices[0]
+    if (choice?.finish_reason === 'length') {
+      return { error: 'Az AI válasz túl hosszú (túl sok dolgozó/nap). Próbáld kevesebb dolgozóval vagy rövidebb hétre.' }
+    }
+    const raw = choice?.message?.content ?? '{}'
     const parsed = JSON.parse(raw)
     const arr: AiShiftSuggestion[] = Array.isArray(parsed)
       ? parsed
