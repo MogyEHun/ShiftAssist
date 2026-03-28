@@ -154,9 +154,10 @@ interface SidebarProps {
   userRole: string
   isOpen?: boolean
   onClose?: () => void
+  mobileOnly?: boolean
 }
 
-export function Sidebar({ companyName, userFullName, userRole, isOpen = false, onClose }: SidebarProps) {
+export function Sidebar({ companyName, userFullName, userRole, isOpen = false, onClose, mobileOnly = false }: SidebarProps) {
   const pathname = usePathname()
   const [order, setOrder] = useState<string[]>(() => NAV_ITEMS.map(i => i.href))
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -303,7 +304,7 @@ export function Sidebar({ companyName, userFullName, userRole, isOpen = false, o
 
   return (
     <>
-      <div className="hidden md:flex">{sidebarContent}</div>
+      {!mobileOnly && <div className="hidden md:flex">{sidebarContent}</div>}
 
       {isOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex" onClick={onClose}>

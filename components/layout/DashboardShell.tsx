@@ -36,6 +36,7 @@ export function DashboardShell({ companyName, userFullName, userRole, children }
         userRole={userRole}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        mobileOnly
       />
 
       {/* Alsó navigáció mobilon */}
