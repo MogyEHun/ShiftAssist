@@ -7,7 +7,7 @@ import { AiShiftSuggestion } from '@/types'
 import { addDays, format } from 'date-fns'
 import { getCompanyUsers } from '@/lib/data/users'
 
-const RATE_LIMIT_PER_DAY = 5
+const RATE_LIMIT_PER_DAY = 100
 
 interface PositionBreakdown {
   position: string
