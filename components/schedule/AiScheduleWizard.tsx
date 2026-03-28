@@ -11,15 +11,16 @@ interface Props {
   onClose: () => void
   positions?: string[]
   employees?: { id: string; full_name: string }[]
+  currentWeekStart?: string
 }
 
 const TOTAL_STEPS = 5
 
-export function AiScheduleWizard({ onGenerated, onClose, positions = [], employees = [] }: Props) {
+export function AiScheduleWizard({ onGenerated, onClose, positions = [], employees = [], currentWeekStart }: Props) {
   const nextMonday = format(startOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
   // Step 1
-  const [weekStart, setWeekStart] = useState(nextMonday)
+  const [weekStart, setWeekStart] = useState(currentWeekStart ?? nextMonday)
 
   // Step 2
   const [openFrom, setOpenFrom] = useState('08:00')

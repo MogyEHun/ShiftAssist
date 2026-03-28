@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { format } from 'date-fns'
 import { Sparkles, Download, Send, PenSquare } from 'lucide-react'
 import { createShift } from '@/app/actions/schedule'
 import { exportSchedulePDF } from '@/lib/exportSchedulePDF'
@@ -186,8 +187,12 @@ export function ScheduleActionsBar({
         <AiScheduleWizard
           onGenerated={handleAiGenerated}
           onClose={() => setShowAiModal(false)}
-          positions={positions}
+          positions={Array.from(new Set([
+            ...positions,
+            ...employees.map(e => e.position).filter((p): p is string => !!p),
+          ])).sort()}
           employees={employees.map(e => ({ id: e.id, full_name: e.full_name }))}
+          currentWeekStart={weekDates[0] ? format(weekDates[0], 'yyyy-MM-dd') : undefined}
         />
       )}
 
