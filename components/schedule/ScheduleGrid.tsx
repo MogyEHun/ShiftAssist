@@ -114,9 +114,23 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
     if (localStorage.getItem('schedule_planner_mode') === '0') setPlannerMode(false)
   }, [])
 
-  // AI javaslatok (ScheduleActionsBar generálja, itt kezeljük a reducer-en át)
-  const [suggestions, setSuggestions] = useState<AiShiftSuggestion[]>([])
+  // AI javaslatok – localStorage-ban perzisztálva, hogy navigáció után is megmaradjanak
+  const suggestionsKey = `ai_suggestions_${weekStart}`
+  const [suggestions, setSuggestions] = useState<AiShiftSuggestion[]>(() => {
+    try {
+      const stored = localStorage.getItem(suggestionsKey)
+      return stored ? JSON.parse(stored) : []
+    } catch { return [] }
+  })
   const [acceptingAll, setAcceptingAll] = useState(false)
+
+  function updateSuggestions(sgs: AiShiftSuggestion[]) {
+    setSuggestions(sgs)
+    try {
+      if (sgs.length > 0) localStorage.setItem(suggestionsKey, JSON.stringify(sgs))
+      else localStorage.removeItem(suggestionsKey)
+    } catch {}
+  }
 
   // Drag error banner
   const [dragError, setDragError] = useState<string | null>(null)
@@ -362,7 +376,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
         }
       } catch {}
     }
-    setSuggestions([])
+    updateSuggestions([])
     setAcceptingAll(false)
   }
 
@@ -411,7 +425,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
           count={suggestions.length}
           accepting={acceptingAll}
           onAcceptAll={acceptAllSuggestions}
-          onDismiss={() => setSuggestions([])}
+          onDismiss={() => updateSuggestions([])}
         />
       )}
 
@@ -459,7 +473,7 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
             isManager={isManager}
             weekDates={weekDates}
             onPlannerModeChange={setPlannerMode}
-            onAiGenerated={setSuggestions}
+            onAiGenerated={updateSuggestions}
             onPublished={(ids) => {
               ids.forEach(id => {
                 const s = shifts.find(sh => sh.id === id)
