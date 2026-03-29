@@ -3,12 +3,14 @@ import Link from 'next/link'
 import { CalendarDays, Palmtree, RefreshCcw, ClipboardList, ChevronRight } from 'lucide-react'
 import { TodayCard } from '@/components/employee/TodayCard'
 import { format, startOfWeek, endOfWeek, addDays, parseISO } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { getLocale, getT } from '@/lib/i18n'
 
 export default async function MyHomePage() {
-  const t = getT(getLocale())
-  const supabase = await createClient()
+  const locale = getLocale()
+  const t = getT(locale)
+  const dfLocale = locale === 'en' ? enUS : hu
+  const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
@@ -56,7 +58,7 @@ export default async function MyHomePage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">{t('home.today')}</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          {now.toLocaleDateString('hu-HU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {now.toLocaleDateString(locale === 'en' ? 'en-GB' : 'hu-HU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
 
@@ -118,7 +120,7 @@ export default async function MyHomePage() {
               return (
                 <div key={i} className={"flex flex-col items-center p-2 min-h-[88px]" + (isToday ? " bg-[#1a5c3a]/5" : "")}>
                   <span className={"text-[10px] font-semibold uppercase mb-1 " + (isToday ? "text-[#1a5c3a]" : "text-gray-400")}>
-                    {format(day, 'EEE', { locale: hu })}
+                    {format(day, 'EEE', { locale: dfLocale })}
                   </span>
                   <div className={"text-xs font-bold mb-2 w-6 h-6 flex items-center justify-center rounded-full " + (isToday ? "bg-[#1a5c3a] text-white" : "text-gray-700")}>
                     {format(day, 'd')}

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { ShiftWithAssignee } from '@/types'
 import { format, parseISO } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { Briefcase, Clock, MapPin, Plus, Trash2 } from 'lucide-react'
 import { claimOpenShift, createOpenShift, deleteOpenShift } from '@/app/actions/open-shifts'
 import { useRouter } from 'next/navigation'
@@ -15,7 +15,8 @@ interface Props {
 }
 
 export function OpenShiftsPage({ shifts, userRole }: Props) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
   const router = useRouter()
   const isManager = ['owner', 'admin', 'manager'].includes(userRole)
   const [claiming, setClaiming] = useState<string | null>(null)
@@ -216,7 +217,7 @@ export function OpenShiftsPage({ shifts, userRole }: Props) {
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {format(start, 'MMM d. HH:mm', { locale: hu })} – {format(end, 'HH:mm')} ({hours}h)
+                      {format(start, 'MMM d. HH:mm', { locale: dfLocale })} – {format(end, 'HH:mm')} ({hours}h)
                     </span>
                     {shift.notes && (
                       <span className="flex items-center gap-1">

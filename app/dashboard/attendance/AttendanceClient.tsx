@@ -3,7 +3,8 @@
 import { useState, useTransition } from 'react'
 import { getClockEntries } from '@/app/actions/attendance'
 import { format, differenceInMinutes } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
+import { useTranslation } from '@/components/providers/LanguageProvider'
 import type { ClockEntry } from '@/types'
 import type { SiteWithCount } from '@/app/actions/sites'
 
@@ -27,6 +28,8 @@ function formatDuration(clockInAt: string, clockOutAt: string | null): string {
 }
 
 export function AttendanceClient({ initialEntries, initialDate, employeeNames, sites, isMultiSite, userRole, userSiteId }: Props) {
+  const { locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
   const [date, setDate] = useState(initialDate)
   const [siteId, setSiteId] = useState(
     userRole === 'manager' && userSiteId ? userSiteId : ''
@@ -104,7 +107,7 @@ export function AttendanceClient({ initialEntries, initialDate, employeeNames, s
                     <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 font-medium text-gray-900">{name}</td>
                       <td className="px-4 py-3 text-gray-600">
-                        {format(new Date(entry.clock_in_at), 'HH:mm', { locale: hu })}
+                        {format(new Date(entry.clock_in_at), 'HH:mm', { locale: dfLocale })}
                       </td>
                       <td className="px-4 py-3">
                         {isStillIn ? (
@@ -114,7 +117,7 @@ export function AttendanceClient({ initialEntries, initialDate, employeeNames, s
                           </span>
                         ) : (
                           <span className="text-gray-600">
-                            {format(new Date(entry.clock_out_at!), 'HH:mm', { locale: hu })}
+                            {format(new Date(entry.clock_out_at!), 'HH:mm', { locale: dfLocale })}
                           </span>
                         )}
                       </td>

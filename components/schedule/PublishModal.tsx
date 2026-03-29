@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { CheckCircle, Send } from 'lucide-react'
 import { publishShifts } from '@/app/actions/schedule'
 import { ShiftWithAssignee } from '@/types'
@@ -15,7 +15,8 @@ interface Props {
 }
 
 export function PublishModal({ draftShifts, onClose, onPublished }: Props) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -71,9 +72,9 @@ export function PublishModal({ draftShifts, onClose, onPublished }: Props) {
         {/* Dátumtartomány */}
         {draftShifts.length > 0 && (
           <p className="text-xs text-gray-400">
-            {format(parseISO(draftShifts[0].start_time), 'MMM d.', { locale: hu })}
+            {format(parseISO(draftShifts[0].start_time), 'MMM d.', { locale: dfLocale })}
             {' – '}
-            {format(parseISO(draftShifts[draftShifts.length - 1].start_time), 'MMM d.', { locale: hu })}
+            {format(parseISO(draftShifts[draftShifts.length - 1].start_time), 'MMM d.', { locale: dfLocale })}
           </p>
         )}
 

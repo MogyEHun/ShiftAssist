@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format, addDays, subDays, parseISO, isToday, startOfWeek } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, Plus, Clock, MoveRight, PenSquare } from 'lucide-react'
 import { WeeklyScheduleData, ShiftWithAssignee } from '@/types'
 import { ShiftModal } from './ShiftModal'
@@ -39,7 +39,8 @@ const STATUS_COLORS: Record<string, string> = {
 
 export function DayView({ scheduleData, currentUserId, userRole, dateISO }: Props) {
   const router = useRouter()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
   const isManager = ['owner', 'admin', 'manager'].includes(userRole)
   const date = parseISO(dateISO)
   const [plannerMode, setPlannerMode] = useState(false)
@@ -93,8 +94,8 @@ export function DayView({ scheduleData, currentUserId, userRole, dateISO }: Prop
           </button>
         </div>
         <span className={`text-sm font-semibold ${todayHL ? 'text-[#1a5c3a]' : 'text-gray-800'}`}>
-          {format(date, 'yyyy. MMMM d.', { locale: hu })}
-          <span className="ml-2 font-normal text-gray-400">{format(date, 'EEEE', { locale: hu })}</span>
+          {format(date, 'yyyy. MMMM d.', { locale: dfLocale })}
+          <span className="ml-2 font-normal text-gray-400">{format(date, 'EEEE', { locale: dfLocale })}</span>
         </span>
         {isManager && (
           <div className="ml-auto">

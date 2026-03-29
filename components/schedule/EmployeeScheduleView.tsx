@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import { format, parseISO, isToday } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { Calendar, ArrowLeftRight, Clock } from 'lucide-react'
+import { useTranslation } from '@/components/providers/LanguageProvider'
 import { ShiftWithAssignee, SHIFT_STATUS_LABELS, SHIFT_STATUS_COLORS } from '@/types'
 import { requestSwap } from '@/app/actions/schedule'
 
@@ -14,6 +15,8 @@ interface Props {
 }
 
 export function EmployeeScheduleView({ shifts: initialShifts, currentUserId }: Props) {
+  const { locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
   const [shifts, setShifts] = useState(initialShifts)
   const [loadingSwap, setLoadingSwap] = useState<string | null>(null)
   const [swapMsg, setSwapMsg] = useState<string | null>(null)
@@ -68,7 +71,7 @@ export function EmployeeScheduleView({ shifts: initialShifts, currentUserId }: P
           <div key={dayKey} className="mb-4">
             <div className={`flex items-center gap-2 mb-2 ${todayHL ? 'text-[#1a5c3a]' : 'text-gray-700'}`}>
               <span className="text-sm font-semibold">
-                {format(date, 'EEEE, MMMM d.', { locale: hu })}
+                {format(date, 'EEEE, MMMM d.', { locale: dfLocale })}
               </span>
               {todayHL && (
                 <span className="text-xs bg-[#1a5c3a] text-white px-2 py-0.5 rounded-full">Ma</span>

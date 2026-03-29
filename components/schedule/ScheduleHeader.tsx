@@ -2,19 +2,24 @@
 
 import { useRouter } from 'next/navigation'
 import { format, addWeeks, subWeeks, parseISO, isToday } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react'
+import { useTranslation } from '@/components/providers/LanguageProvider'
 
 interface Props {
   weekStart: string    // YYYY-MM-DD (hétfő)
   weekDates: Date[]    // 7 nap: hétfő–vasárnap
 }
 
-// Magyar naprövidítések
-const DAY_SHORTS = ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V']
-
 export function ScheduleHeader({ weekStart, weekDates }: Props) {
   const router = useRouter()
+  const { t, locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
+  const DAY_SHORTS = [
+    t('schedule.days.monShort'), t('schedule.days.tueShort'), t('schedule.days.wedShort'),
+    t('schedule.days.thuShort'), t('schedule.days.friShort'), t('schedule.days.satShort'),
+    t('schedule.days.sunShort'),
+  ]
 
   function navigate(weeks: number) {
     const newDate = weeks > 0
@@ -55,12 +60,12 @@ export function ScheduleHeader({ weekStart, weekDates }: Props) {
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <CalendarDays className="h-3.5 w-3.5 text-gray-500" />
-          Ma
+          {t('schedule.today')}
         </button>
         <span className="text-sm font-medium text-gray-700">
-          {format(weekDates[0], 'MMM d', { locale: hu })}
+          {format(weekDates[0], 'MMM d', { locale: dfLocale })}
           {' – '}
-          {format(weekDates[6], 'MMM d.', { locale: hu })}
+          {format(weekDates[6], 'MMM d.', { locale: dfLocale })}
         </span>
       </div>
 

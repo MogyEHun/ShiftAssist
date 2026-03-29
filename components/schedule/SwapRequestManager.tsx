@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { hu } from 'date-fns/locale'
+import { hu, enUS } from 'date-fns/locale'
 import { Check, X, MessageSquare } from 'lucide-react'
 import { resolveSwap } from '@/app/actions/schedule'
 import { useTranslation } from '@/components/providers/LanguageProvider'
@@ -25,7 +25,8 @@ interface Props {
 }
 
 export function SwapRequestManager({ swapRequests: initial }: Props) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
+  const dfLocale = locale === 'en' ? enUS : hu
   const [requests, setRequests] = useState(initial)
   const [noteMap, setNoteMap] = useState<Record<string, string>>({})
   const [loadingId, setLoadingId] = useState<string | null>(null)
@@ -96,14 +97,14 @@ export function SwapRequestManager({ swapRequests: initial }: Props) {
                 <div className="text-sm text-gray-500">
                   Műszak:{' '}
                   <span className="font-medium text-gray-700">
-                    {format(parseISO(req.shift.start_time), 'MMMM d. (EEE) HH:mm', { locale: hu })}
+                    {format(parseISO(req.shift.start_time), 'MMMM d. (EEE) HH:mm', { locale: dfLocale })}
                     {' – '}
                     {format(parseISO(req.shift.end_time), 'HH:mm')}
                   </span>
                 </div>
               )}
               <div className="text-xs text-gray-400 mt-1">
-                Kérve: {format(parseISO(req.created_at), 'MMM d. HH:mm', { locale: hu })}
+                Kérve: {format(parseISO(req.created_at), 'MMM d. HH:mm', { locale: dfLocale })}
               </div>
             </div>
 
