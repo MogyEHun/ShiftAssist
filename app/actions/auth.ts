@@ -6,10 +6,30 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { createUserEncrypted, updateUserEncrypted } from '@/lib/data/users'
 import { cookies } from 'next/headers'
 
+// Erős jelszó validáció: min 10 karakter, nagy- és kisbetű, szám kötelező
+function validatePassword(password: string): string | null {
+  if (password.length < 10) return 'A jelszónak legalább 10 karakter hosszúnak kell lennie.'
+  if (!/[A-Z]/.test(password)) return 'Tartalmaznia kell legalább egy nagybetűt (A–Z).'
+  if (!/[a-z]/.test(password)) return 'Tartalmaznia kell legalább egy kisbetűt (a–z).'
+  if (!/[0-9]/.test(password)) return 'Tartalmaznia kell legalább egy számot (0–9).'
+  return null
+}
+
 // ============================================================
 // Regisztráció
 // ============================================================
 export async function register(formData: FormData) {
+  // Stripe konfigurációs kapu — ha nincs bekötve a fizetés, a regisztráció le van tiltva
+  const stripeKey = process.env.STRIPE_SECRET_KEY
+  const stripePubKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+  const isStripeReady = !!(
+    stripeKey && !stripeKey.startsWith('sk_test_your') &&
+    stripePubKey && !stripePubKey.startsWith('pk_test_your')
+  )
+  if (!isStripeReady) {
+    return { error: 'A regisztráció jelenleg nem elérhető. Kérjük lépj kapcsolatba velünk a hozzáférésért.' }
+  }
+
   const companyName = formData.get('companyName') as string
   const fullName = formData.get('fullName') as string
   const email = formData.get('email') as string
@@ -20,9 +40,8 @@ export async function register(formData: FormData) {
   if (!companyName || !fullName || !email || !password) {
     return { error: 'Kérjük töltsd ki az összes mezőt.' }
   }
-  if (password.length < 8) {
-    return { error: 'A jelszónak legalább 8 karakter hosszúnak kell lennie.' }
-  }
+  const pwError = validatePassword(password)
+  if (pwError) return { error: pwError }
   if (password !== passwordConfirm) {
     return { error: 'A két jelszó nem egyezik meg.' }
   }
@@ -68,6 +87,7 @@ export async function register(formData: FormData) {
       slug,
       subscription_plan: 'starter',
       subscription_status: 'trialing',
+      trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
       max_employees: 15,
       timezone: 'Europe/Budapest',
     })
@@ -225,7 +245,9 @@ export async function updateMyProfile(fullName: string): Promise<{ error?: strin
 // Jelszó csere (bejelentkezve)
 // ============================================================
 export async function changePassword(newPassword: string): Promise<{ error?: string }> {
-  if (!newPassword || newPassword.length < 8) return { error: 'A jelszónak legalább 8 karakter hosszúnak kell lennie.' }
+  if (!newPassword) return { error: 'A jelszó nem lehet üres.' }
+  const pwError = validatePassword(newPassword)
+  if (pwError) return { error: pwError }
 
   const supabase = createClient()
   const { error } = await supabase.auth.updateUser({ password: newPassword })
@@ -241,9 +263,8 @@ export async function resetPassword(formData: FormData) {
   if (!password || !passwordConfirm) {
     return { error: 'Kérjük töltsd ki az összes mezőt.' }
   }
-  if (password.length < 8) {
-    return { error: 'A jelszónak legalább 8 karakter hosszúnak kell lennie.' }
-  }
+  const pwErr = validatePassword(password)
+  if (pwErr) return { error: pwErr }
   if (password !== passwordConfirm) {
     return { error: 'A két jelszó nem egyezik meg.' }
   }

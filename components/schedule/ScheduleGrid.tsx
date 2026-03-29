@@ -603,11 +603,9 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                         <div className="text-sm font-medium text-gray-800 truncate">{employee.full_name}</div>
                         {employee.position && <div className="text-xs text-gray-400 truncate">{employee.position}</div>}
                       </div>
-                      {(isOverWarn || isOverMax) && (
-                        <span className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-md ${isOverMax ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`} title={`${weeklyHours}h heti munkaidő`}>
-                          {weeklyHours}h
-                        </span>
-                      )}
+                      <span className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-md ${isOverMax ? 'bg-red-100 text-red-700' : isOverWarn ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500'}`} title={`${weeklyHours}h heti munkaidő`}>
+                        {weeklyHours}h
+                      </span>
                     </div>
                     {weekDates.map((date, dayIdx) => {
                       const dateISO = format(date, 'yyyy-MM-dd')
@@ -658,18 +656,18 @@ export function ScheduleGrid({ scheduleData, currentUserId, userRole, weekStart 
                       <div className="text-xs text-gray-400 truncate">{employee.position}</div>
                     )}
                   </div>
-                  {(isOverWarn || isOverMax) && (
-                    <span
-                      className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-md ${
-                        isOverMax
-                          ? 'bg-red-100 text-red-700'
-                          : 'bg-amber-100 text-amber-700'
-                      }`}
-                      title={`${weeklyHours}h heti munkaidő`}
-                    >
-                      {weeklyHours}h
-                    </span>
-                  )}
+                  <span
+                    className={`flex-shrink-0 text-xs font-bold px-1.5 py-0.5 rounded-md ${
+                      isOverMax
+                        ? 'bg-red-100 text-red-700'
+                        : isOverWarn
+                        ? 'bg-amber-100 text-amber-700'
+                        : 'bg-gray-100 text-gray-500'
+                    }`}
+                    title={`${weeklyHours}h heti munkaidő`}
+                  >
+                    {weeklyHours}h
+                  </span>
                 </div>
 
                 {/* Nap cellek */}

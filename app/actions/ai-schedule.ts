@@ -36,7 +36,7 @@ interface GenerateScheduleParams {
 }
 
 export async function getRateLimitStatus(): Promise<{ used: number; limit: number }> {
-  const supabase = await createClient()
+  const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { used: 0, limit: RATE_LIMIT_PER_DAY }
 
@@ -62,7 +62,7 @@ export async function getRateLimitStatus(): Promise<{ used: number; limit: numbe
 export async function generateSchedule(
   params: GenerateScheduleParams
 ): Promise<{ data?: AiShiftSuggestion[]; error?: string }> {
-  const supabase = await createClient()
+  const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return { error: 'Nincs bejelentkezve' }
 
@@ -98,34 +98,35 @@ export async function generateSchedule(
   })
   const weekEnd = weekDays[6]
 
-  // Aktív dolgozók (visszafejtve)
-  const allEmployees = await getCompanyUsers(profile.company_id, true)
-  let employees = allEmployees.filter(e => ['employee', 'manager', 'admin'].includes(e.role))
+  // Párhuzamos lekérdezések — availability és availability_dates egyszerre
+  const [allEmployeesRaw, leaveResult, shiftsResult, availDatesResult, weeklyAvailResult] = await Promise.all([
+    getCompanyUsers(profile.company_id, true),
+    admin.from('leave_requests')
+      .select('user_id, start_date, end_date')
+      .eq('company_id', profile.company_id)
+      .eq('status', 'approved')
+      .lte('start_date', weekEnd)
+      .gte('end_date', params.weekStart),
+    admin.from('shifts')
+      .select('user_id, start_time, end_time, required_position')
+      .eq('company_id', profile.company_id)
+      .gte('start_time', `${params.weekStart}T00:00:00`)
+      .lte('start_time', `${weekEnd}T23:59:59`),
+    admin.from('availability_dates')
+      .select('user_id, date, status, from_time, to_time')
+      .eq('company_id', profile.company_id)
+      .gte('date', params.weekStart)
+      .lte('date', weekEnd),
+    admin.from('availability')
+      .select('user_id, day_of_week, max_days_per_week, valid_from, valid_until')
+      .eq('company_id', profile.company_id),
+  ])
 
-  // Szabadságosok
-  const { data: leaveRequests } = await admin
-    .from('leave_requests')
-    .select('user_id, start_date, end_date')
-    .eq('company_id', profile.company_id)
-    .eq('status', 'approved')
-    .lte('start_date', weekEnd)
-    .gte('end_date', params.weekStart)
-
-  // Meglévő műszakok
-  const { data: existingShifts } = await admin
-    .from('shifts')
-    .select('user_id, start_time, end_time, required_position')
-    .eq('company_id', profile.company_id)
-    .gte('start_time', `${params.weekStart}T00:00:00`)
-    .lte('start_time', `${weekEnd}T23:59:59`)
-
-  // Elérhetőség adatok
-  const { data: availability } = await admin
-    .from('availability_dates')
-    .select('user_id, date, status, from_time, to_time')
-    .eq('company_id', profile.company_id)
-    .gte('date', params.weekStart)
-    .lte('date', weekEnd)
+  let employees = allEmployeesRaw.filter(e => ['employee', 'manager', 'admin'].includes(e.role))
+  const leaveRequests = leaveResult.data
+  const existingShifts = shiftsResult.data
+  const availDates = availDatesResult.data
+  const weeklyAvail = weeklyAvailResult.data ?? []
 
   // Műszak template(k) kiszámolása
   const shiftDur = params.shiftDurationHours ?? 8
@@ -179,11 +180,26 @@ export async function generateSchedule(
     existingByUser.get(s.user_id)!.add(date)
   }
 
-  // Unavailable lookup
+  // Unavailable lookup — MINDIG aktív, nem csak ha respectAvailability=true
   const unavailSet = new Set<string>()
-  if (prefs.respectAvailability) {
-    for (const a of availability ?? []) {
-      if (a.status === 'unavailable') unavailSet.add(`${a.user_id}:${a.date}`)
+  for (const a of availDates ?? []) {
+    if (a.status === 'unavailable') unavailSet.add(`${a.user_id}:${a.date}`)
+  }
+
+  // Heti elérhetőség lookup — availability tábla (ismétlődő minták)
+  // weeklyAvailByUser: user_id → Set<day_of_week> (csak érvényes date-range-en belüli bejegyzések)
+  const weeklyAvailByUser = new Map<string, Set<number>>()
+  const maxDaysPerUserMap = new Map<string, number>()
+  const now = new Date()
+
+  for (const a of weeklyAvail) {
+    if (a.valid_from && new Date(a.valid_from) > now) continue
+    if (a.valid_until && new Date(a.valid_until) < now) continue
+    if (!weeklyAvailByUser.has(a.user_id)) weeklyAvailByUser.set(a.user_id, new Set())
+    weeklyAvailByUser.get(a.user_id)!.add(a.day_of_week)
+    if (a.max_days_per_week != null) {
+      const current = maxDaysPerUserMap.get(a.user_id) ?? Infinity
+      maxDaysPerUserMap.set(a.user_id, Math.min(current, a.max_days_per_week))
     }
   }
 
@@ -207,13 +223,28 @@ export async function generateSchedule(
     const existingDates = existingByUser.get(emp.id) ?? new Set()
     let daysAssigned = existingDates.size
 
+    // Per-alkalmazott max nap: a varázslóban beállított érték és az availability
+    // táblában megadott max_days_per_week közül a kisebb érvényes
+    const empMaxDays = maxDaysPerUserMap.has(emp.id)
+      ? Math.min(workDays, maxDaysPerUserMap.get(emp.id)!)
+      : workDays
+
     for (let i = 0; i < weekDays.length; i++) {
-      if (daysAssigned >= workDays) break
+      if (daysAssigned >= empMaxDays) break
       const day = weekDays[i]
+      const dayOfWeek = i  // 0=Hétfő, 6=Vasárnap
+
       if (existingDates.has(day)) continue
       const onLeave = leaves.some(l => l.start_date <= day && l.end_date >= day)
       if (onLeave) continue
+
+      // Hard constraint: availability_dates unavailable — mindig tiltott
       if (unavailSet.has(`${emp.id}:${day}`)) continue
+
+      // Ha az alkalmazottnak van heti elérhetőség-beállítása, csak a megjelölt napokon osztjuk be
+      if (prefs.respectAvailability !== false && weeklyAvailByUser.has(emp.id)) {
+        if (!weeklyAvailByUser.get(emp.id)!.has(dayOfWeek)) continue
+      }
 
       const { start, end } = calcShiftTimes(slotCounter++)
       requiredSlots.push({
@@ -248,8 +279,20 @@ export async function generateSchedule(
     return { data: directShifts }
   }
 
-  // Ha van speciális utasítás → AI módosíthatja a slotokat
-  const systemMessage = `Te egy precíz munkarendbeosztó asszisztens vagy. Kapsz egy előre kiszámított műszaklistát és speciális utasítást. Az utasítás alapján módosíthatod a listát (időpontok, pozíciók, megjegyzések), de NE töröld és NE adj hozzá sorokat. Mindig valid JSON objektumot adsz vissza, semmi mást.`
+  // Ha van speciális utasítás → AI módosíthatja a slotokat a note alapján
+  const systemMessage = `Te egy precíz munkarendbeosztó asszisztens vagy.
+Kapsz egy előre kiszámított műszaklistát és egy speciális utasítást.
+
+PRIORITÁS-SORREND (szigorúan tartsd be):
+1. Speciális utasítás (note) — ez az EGYETLEN dolog amire módosíthatod a listát
+2. Az előre kiszámított időpontok és munkavállalói adatok — ne töröld, ne add hozzá
+3. Pozíció és megjegyzés mezők — csak a note-nak megfelelően változtathatod
+
+SZABÁLYOK:
+- NE törölj egyetlen sort sem
+- NE adj hozzá új sort
+- NE változtasd meg az user_id értékeket
+- Mindig valid JSON objektumot adsz vissza, semmi mást`
 
   const slotList = requiredSlots
     .map((s, i) => `${i + 1}. user_id:"${s.userId}" nev:"${s.name}" datum:"${s.date}" (${s.dayLabel}) start:"${s.start}" end:"${s.end}" pozicio:"${s.position ?? 'nincs'}"`)

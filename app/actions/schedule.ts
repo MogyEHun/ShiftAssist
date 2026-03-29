@@ -598,11 +598,12 @@ export async function requestSwap(shiftId: string): Promise<{ error: string | nu
 
     const admin = createAdminClient()
 
-    // Műszak státusz frissítése
+    // Műszak státusz frissítése (company_id szűrővel – cross-company módosítás megakadályozása)
     await admin
       .from('shifts')
       .update({ status: 'swappable' as ShiftStatus, updated_at: new Date().toISOString() })
       .eq('id', shiftId)
+      .eq('company_id', currentUser.company_id)
 
     // Csereigény létrehozása
     const { error: swapError } = await admin

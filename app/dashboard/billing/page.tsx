@@ -3,8 +3,24 @@ import { redirect } from 'next/navigation'
 import { BillingClient } from './BillingClient'
 import { calculateSeatPrice, getTrialDaysRemaining, getNextBillingDate, formatHUF } from '@/lib/billing'
 import type { BillingPlan } from '@/lib/billing'
+import { AlertTriangle } from 'lucide-react'
 
-export default async function BillingPage() {
+const BLOCK_MESSAGES: Record<string, { title: string; body: string }> = {
+  trial_expired: {
+    title: 'A 14 napos próbaidőszak lejárt',
+    body: 'A fiókod próbaidőszaka véget ért. Az összes funkció eléréséhez aktiválj előfizetést.',
+  },
+  canceled: {
+    title: 'Az előfizetés megszűnt',
+    body: 'Az előfizetésed törölve lett. A hozzáférés visszaállításához aktiválj új előfizetést.',
+  },
+}
+
+interface Props {
+  searchParams: { reason?: string }
+}
+
+export default async function BillingPage({ searchParams }: Props) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -45,16 +61,29 @@ export default async function BillingPage() {
     ? getNextBillingDate(company.billing_cycle_start)
     : null
 
+  const blockMessage = searchParams.reason ? BLOCK_MESSAGES[searchParams.reason] : null
+
   return (
-    <BillingClient
-      currentPlan={plan}
-      employeeCount={employeeCount}
-      subscriptionStatus={company?.subscription_status ?? 'trialing'}
-      trialDaysLeft={trialDaysLeft}
-      monthlyAmount={monthlyAmount}
-      formattedAmount={formatHUF(monthlyAmount)}
-      nextBillingDate={nextBillingDate?.toLocaleDateString('hu-HU') ?? null}
-      hasStripeCustomer={!!company?.stripe_customer_id}
-    />
+    <>
+      {blockMessage && (
+        <div className="mx-6 mt-6 flex items-start gap-3 rounded-xl bg-red-50 border border-red-200 px-4 py-4">
+          <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">{blockMessage.title}</p>
+            <p className="text-sm text-red-700 mt-0.5">{blockMessage.body}</p>
+          </div>
+        </div>
+      )}
+      <BillingClient
+        currentPlan={plan}
+        employeeCount={employeeCount}
+        subscriptionStatus={company?.subscription_status ?? 'trialing'}
+        trialDaysLeft={trialDaysLeft}
+        monthlyAmount={monthlyAmount}
+        formattedAmount={formatHUF(monthlyAmount)}
+        nextBillingDate={nextBillingDate?.toLocaleDateString('hu-HU') ?? null}
+        hasStripeCustomer={!!company?.stripe_customer_id}
+      />
+    </>
   )
 }

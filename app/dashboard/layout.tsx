@@ -62,8 +62,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
       {impersonatedCompany && (
         <ImpersonationBanner companyName={impersonatedCompany.name} />
       )}
-      {subscriptionStatus === 'past_due' && (
-        <GracePeriodBanner />
+      {(subscriptionStatus === 'past_due' || subscriptionStatus === 'canceled' || subscriptionStatus === 'cancelled') && (
+        <GracePeriodBanner status={subscriptionStatus} />
       )}
       <DashboardShell
         companyName={companyName}
